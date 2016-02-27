@@ -1,21 +1,44 @@
 import thread
+import threading
 import time
 from firebase import firebase
 from plumbum import local
 from plumbum.cmd import cp, echo
+import SimpleHTTPServer
+import SocketServer
 
 resetHost = cp['/etc/hosts.backup', '/etc/hosts']
-PULL_RATE=2500
+PULL_RATE=3
 PORT = 8000
 firebase = firebase.FirebaseApplication(
     'https://torrid-torch-8987.firebaseio.com/',
     None)
 
+response="UNSET!"
+lock = threading.Lock()
+
+class AppTCPHandler(SocketServer.StreamRequestHandler):
+    def handle(self):
+        self.wfile.write(response)
+
+SocketServer.TCPServer.allow_reuse_address = True
+httpd = SocketServer.TCPServer(("", PORT), AppTCPHandler)
+
+
+
+def setResponse(nv):
+    global response
+    lock.acquire()
+    response=nv
+    lock.release()
+def getResponse():
+    retval = "bad"
+    lock.acquire()
+    retval=response
+    lock.release()
+    return retval
+
 def runServer():
-    import SimpleHTTPServer
-    import SocketServer
-    Handler = SimpleHTTPServer.SimpleHTTPRequestHandler
-    httpd = SocketServer.TCPServer(("", PORT), Handler)
     print "serving at port", PORT
     httpd.serve_forever()
 
@@ -23,21 +46,18 @@ def pullFromServer():
     result = firebase.get('/',None)
     return result['steps']
 
-def generateSite(raw_steps):
+def pullBlockGenerate():
+    raw = pullFromServer()
+    block(raw)
+    reloadCache()
+    return generateSite(raw)
+
+def generateSite(raw):
     from jinja2 import Template
     template = Template(
         open('template.html', 'r').read()
         )
-    open('index.html','w+').write(template.render(steps=raw_steps))
-    
-def genSiteDaemon():
-    # Can't use firebase.on() so we have to just pull every PULL_RATE
-    # ms
-    while True:
-        print "Pulling..."
-        raw = pullFromServer()
-        generateSite(raw)
-        time.sleep(PULL_RATE)
+    return template.render(steps=raw)
 
 def block(steps):
     thresholds = [
@@ -55,6 +75,17 @@ def block(steps):
 def reloadCache():
     (local["dscacheutil"]["-flushcache"])()
 
+def updateLoop():
+    while True:
+        print "loop"
+        setResponse(pullBlockGenerate())
+        print response
+        time.sleep(PULL_RATE)
+
 if __name__ == "__main__":
-    thread.start_new_thread(runServer, ())
-    genSiteDaemon()
+    try:
+        thread.start_new_thread(updateLoop, ())
+        runServer()
+    except:
+        print "Exception caught. Cleaning and closing"
+        httpd.server_close()
