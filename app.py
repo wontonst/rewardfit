@@ -7,36 +7,49 @@ from plumbum.cmd import cp, echo
 import SimpleHTTPServer
 import SocketServer
 
+class ThreadVar:
+    def __init__(self, init):
+        self.val=init
+        self.lock = threading.Lock()
+    def setVal(self, v):
+        self.lock.acquire()
+        self.val=v
+        self.lock.release()
+    def getVal(self):
+        retv=""
+        self.lock.acquire()
+        retv=self.val
+        self.lock.release()
+        return retv
+
+steps=ThreadVar(0)
+
+THRESHOLDS = [
+    ('netflix', 10000),
+    ('facebook', 5000),
+    ('reddit', 2500),
+    ('twitter', 1000)
+]
+
 resetHost = cp['/etc/hosts.backup', '/etc/hosts']
 PULL_RATE=3
-PORT = 8000
+PORT = 80
 firebase = firebase.FirebaseApplication(
     'https://torrid-torch-8987.firebaseio.com/',
     None)
 
-response="UNSET!"
-lock = threading.Lock()
-
 class AppTCPHandler(SocketServer.StreamRequestHandler):
     def handle(self):
-        self.wfile.write(response)
+        trysite=None
+        self.data = self.request.recv(1024).strip()
+        for t in THRESHOLDS:
+            if t[0] in self.data:
+                trysite = t
+                break
+        self.wfile.write(generateSite(trysite))
 
 SocketServer.TCPServer.allow_reuse_address = True
 httpd = SocketServer.TCPServer(("", PORT), AppTCPHandler)
-
-
-
-def setResponse(nv):
-    global response
-    lock.acquire()
-    response=nv
-    lock.release()
-def getResponse():
-    retval = "bad"
-    lock.acquire()
-    retval=response
-    lock.release()
-    return retval
 
 def runServer():
     print "serving at port", PORT
@@ -46,29 +59,22 @@ def pullFromServer():
     result = firebase.get('/',None)
     return result['steps']
 
-def pullBlockGenerate():
+def pullAndBlock():
     raw = pullFromServer()
     block(raw)
     reloadCache()
-    return generateSite(raw)
+    steps.setVal(raw)
 
-def generateSite(raw):
+def generateSite(site):
     from jinja2 import Template
     template = Template(
         open('template.html', 'r').read()
         )
-    return template.render(steps=raw)
+    return template.render(steps=steps.getVal(), site=site)
 
 def block(steps):
-    thresholds = [
-        ('netflix', 10000),
-        ('facebook', 5000),
-        ('reddit', 2500),
-        ('twitter', 1000)
-        ]
-    for t in thresholds:
+    for t in THRESHOLDS:
         if steps < t[1]:
-            print t
             (echo["127.0.0.1 ",t[0]+".com"] >> "/etc/hosts")()
             (echo["127.0.0.1 ","www."+t[0]+".com"] >> "/etc/hosts")()
 
@@ -77,9 +83,8 @@ def reloadCache():
 
 def updateLoop():
     while True:
-        print "loop"
-        setResponse(pullBlockGenerate())
-        print response
+        print "updateLoop"
+        pullAndBlock()
         time.sleep(PULL_RATE)
 
 if __name__ == "__main__":

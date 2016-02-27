@@ -9,6 +9,12 @@ Content-Type: text/html
   <body>
     <div class="container-fluid">
       {{ steps }}
+      {% if site is not none %}
+      {{ site[0] }}
+      {{ site[1] }}
+      {% else %}
+      NONE
+      {% endif %}
     </div>
   </body>
 </html>
