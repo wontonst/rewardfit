@@ -143,6 +143,12 @@ if __name__ == "__main__":
         startUI()
         thread.start_new_thread(updateLoop, ())
         runServer()
+    except IOError as e:
+        if e[0] == errno.EPERM:
+            print "Require root permission to run!"
+    except KeyboardInterrupt:
+        print "Caught interrupt. Closing"
     except:
-        print "Exception caught. Cleaning and closing"
+        print "Unexpected exception caught. Cleaning and closing"
+    finally:
         httpd.server_close()
