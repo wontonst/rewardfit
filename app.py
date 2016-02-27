@@ -10,7 +10,8 @@ from Tkinter import *
 
 global email
 global pwd
-
+global user
+global password
 
 def make_entry(parent, caption, width=None, **options):
     Label(parent, text=caption).pack(side=TOP)
@@ -24,32 +25,35 @@ def enter(event):
     store_creds()
 
 def store_creds():
+    global email, pwd, user, password
     email = user.get()
     pwd = password.get()
     print email
     print pwd
 
-root = Tk()
-root.geometry('300x160')
-root.title('Enter your information')
-var = StringVar()
-label = Label( root, textvariable=var, relief=RAISED )
-
-var.set("Please enter your Fitbit email and password")
-label.pack()
-#frame for window margin
-parent = Frame(root, padx=10, pady=10)
-parent.pack(fill=BOTH, expand=True)
-#entrys with not shown text
-user = make_entry(parent, "Email", 16)
-password = make_entry(parent, "Password:", 16, show="*")
-#button for saving fitbit credentials for OAUTH
-b = Button(parent, borderwidth=4, text="Login", width=10, pady=8, command=store_creds)
-b.pack(side=BOTTOM)
-password.bind('<Return>', enter)
-
-user.focus_set()
-parent.mainloop()
+def startUI():
+    global user, password
+    root = Tk()
+    root.geometry('300x160')
+    root.title('Enter your information')
+    var = StringVar()
+    label = Label( root, textvariable=var, relief=RAISED )
+    
+    var.set("Please enter your Fitbit email and password")
+    label.pack()
+    #frame for window margin
+    parent = Frame(root, padx=10, pady=10)
+    parent.pack(fill=BOTH, expand=True)
+    #entrys with not shown text
+    user = make_entry(parent, "Email", 16)
+    password = make_entry(parent, "Password:", 16, show="*")
+    #button for saving fitbit credentials for OAUTH
+    b = Button(parent, borderwidth=4, text="Login", width=10, pady=8, command=store_creds)
+    b.pack(side=BOTTOM)
+    password.bind('<Return>', enter)
+    
+    user.focus_set()
+    parent.mainloop()
 
 class ThreadVar:
     def __init__(self, init):
@@ -132,7 +136,11 @@ def updateLoop():
         time.sleep(PULL_RATE)
 
 if __name__ == "__main__":
+    import os.path
     try:
+        if not os.path.isfile("/etc/hosts.backup"):
+            cp["/etc/hosts", "/etc/hosts.backup"]()
+        startUI()
         thread.start_new_thread(updateLoop, ())
         runServer()
     except:
