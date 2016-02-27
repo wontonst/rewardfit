@@ -1,8 +1,8 @@
 import thread
-
-from plumbum import local
-from plumbum.cmd import cp, echo, ls
+import time
 from firebase import firebase
+from plumbum import local
+from plumbum.cmd import cp, echo
 
 resetHost = cp['/etc/hosts.backup', '/etc/hosts']
 PULL_RATE=2500
@@ -11,7 +11,7 @@ firebase = firebase.FirebaseApplication(
     'https://torrid-torch-8987.firebaseio.com/',
     None)
 
-def server():
+def runServer():
     import SimpleHTTPServer
     import SocketServer
     Handler = SimpleHTTPServer.SimpleHTTPRequestHandler
@@ -21,14 +21,14 @@ def server():
 
 def pullFromServer():
     result = firebase.get('/',None)
-    return result.steps
-    
+    return result['steps']
+
 def generateSite(raw_steps):
     from jinja2 import Template
     template = Template(
-        open('template.html', 'w').read()
+        open('template.html', 'r').read()
         )
-    open('site/index.html').write(template.render(steps=raw_steps))
+    open('index.html','w+').write(template.render(steps=raw_steps))
     
 def genSiteDaemon():
     # Can't use firebase.on() so we have to just pull every PULL_RATE
@@ -51,7 +51,10 @@ def block(steps):
             print t
             (echo["127.0.0.1 ",t[0]+".com"] >> "/etc/hosts")()
             (echo["127.0.0.1 ","www."+t[0]+".com"] >> "/etc/hosts")()
+
 def reloadCache():
     (local["dscacheutil"]["-flushcache"])()
+
 if __name__ == "__main__":
+    thread.start_new_thread(runServer, ())
     genSiteDaemon()

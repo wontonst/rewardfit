@@ -1,5 +1,7 @@
 #!/bin/bash
 
+# DEPRECATED #
+
 set -euo pipefail
 
 function my_trap_handler()
