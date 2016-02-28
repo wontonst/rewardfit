@@ -1,89 +1,29 @@
+import sys
 import thread
-import threading
-import base64
 import time
-import requests
-import json
 from firebase import firebase
 from plumbum import local
 from plumbum.cmd import cp, echo
 import SimpleHTTPServer
 import SocketServer
-
-class ThreadVar:
-    def __init__(self, init):
-        self.val=init
-        self.lock = threading.Lock()
-    def setVal(self, v):
-        self.lock.acquire()
-        self.val=v
-        self.lock.release()
-    def getVal(self):
-        retv=""
-        self.lock.acquire()
-        retv=self.val
-        self.lock.release()
-        return retv
+from app_tcp_handler import AppTCPHandler
+from app_constants import AppConstants
+from app_threadvar import ThreadVar
+import os.path
 
 steps = ThreadVar(0)
-
-THRESHOLDS = [
-    ('netflix', 10000),
-    ('facebook', 5000),
-    ('reddit', 2500),
-    ('twitter', 1000)
-]
-
 resetHost = cp['/etc/hosts.backup', '/etc/hosts']
-PULL_RATE=3
-PORT = 80
 firebase = firebase.FirebaseApplication(
     'https://torrid-torch-8987.firebaseio.com/',
     None)
-fitbit=json.loads(open('auth.json','r').read())
 
 # Every hackathon I use a huge web framework yada yada yada. Well this
 # time I'm going to write my own bare metal server.
-
-class AppTCPHandler(SocketServer.StreamRequestHandler):
-    def handle(self):
-        trysite=None
-        self.data = self.request.recv(2048)
-        print self.data
-        if "GET /fitbit?code=" in self.data:
-            print "----HANDLING FITBIT OAUTH REQUEST----"
-            code = self.data[self.data.find("code")+5:self.data.find("HTTP")-1]
-            payload={"grant_type":"authorization_code",
-                                "client_id":fitbit['client_id'],
-                     "redirect_uri":"http://localhost/fitbit",
-                     "code":code}
-            authraw="{}:{}".format(fitbit['client_id'],fitbit['client_secret'])
-            b64auth="Basic "+base64.b64encode(authraw)
-            print "Code:",code
-            print "Payload:",payload
-            print "Fitbit:",authraw
-            print "Base64Auth:",b64auth
-            print "----SENDING TOKEN REQUEST----"
-            response=requests.post("https://api.fitbit.com/oauth2/token",
-                                   data=payload,
-                                   headers={"Authorization":b64auth,"Content-Type":"application/x-www-form-urlencoded"})
-            print response.text
-            print response.headers
-            self.wfile.write("HTTP/1.0 200 OK\nContent-Type: text/html")
-
-        for t in THRESHOLDS:
-            if t[0] in self.data:
-                trysite = t
-                break
-        dt=self.rfile.read()
-        print dt
-        self.wfile.write(generateSite(trysite))
-
 SocketServer.TCPServer.allow_reuse_address = True
-httpd = SocketServer.TCPServer(("", PORT), AppTCPHandler)
+httpd = SocketServer.TCPServer(("", AppConstants.PORT), AppTCPHandler)
 
 def runServer():
-    print "serving at port", PORT
+    print "Server starting on port", AppConstants.PORT
     httpd.serve_forever()
 
 def pullFromServer():
@@ -91,12 +31,14 @@ def pullFromServer():
     return result['steps']
 
 def pullAndBlock():
+    """Pulls steps and updates list of blocked sites"""
     raw = pullFromServer()
     block(raw)
     reloadCache()
     steps.setVal(raw)
 
 def generateSite(site):
+    """Generate site based on steps and URL being visited"""
     from jinja2 import Template
     template = Template(
         open('template.html', 'r').read()
@@ -104,7 +46,8 @@ def generateSite(site):
     return template.render(steps=steps.getVal(), site=site)
 
 def block(steps):
-    for t in THRESHOLDS:
+    """Block websites based on number of steps and threshold"""
+    for t in AppConstants.THRESHOLDS:
         if steps < t[1]:
             (echo["127.0.0.1 ",t[0]+".com"] >> "/etc/hosts")()
             (echo["127.0.0.1 ","www."+t[0]+".com"] >> "/etc/hosts")()
@@ -114,16 +57,20 @@ def reloadCache():
 
 def updateLoop():
     while True:
-        print "updateLoop"
+        print "Updating fitness data"
         pullAndBlock()
-        time.sleep(PULL_RATE)
+        time.sleep(AppConstants.PULL_RATE)
+
+def checkHostsFile():
+    """Will check if hosts has been backed up and back it up if needed"""
+    if not os.path.isfile("/etc/hosts.backup"):
+        cp["/etc/hosts", "/etc/hosts.backup"]()
 
 if __name__ == "__main__":
-    import os.path
     try:
-        if not os.path.isfile("/etc/hosts.backup"):
-            cp["/etc/hosts", "/etc/hosts.backup"]()
+        checkHostsFile()
         thread.start_new_thread(updateLoop, ())
+        time.sleep(.1)  # makes stdout cleaner
         runServer()
     except IOError as e:
         if e[0] == errno.EPERM:
