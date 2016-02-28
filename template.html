@@ -1,106 +1,91 @@
 HTTP/1.0 200 OK
 Content-Type: text/html
-
 <html>
-  <head>
-    <link rel="stylesheet" type="text/css" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/css/bootstrap.min.css">
-    <link href='https://fonts.googleapis.com/css?family=Unkempt:400,700|Karla:400,700,400italic|Comfortaa:400,700' rel='stylesheet' type='text/css'>
-    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/js/bootstrap.min.js"></script>
-    <style>
-
-    	body {
-    		background-color: red;
-    		background-image: url(http://i.imgur.com/crPW1c8.jpg);
-    		}
-
-    	h1 {
-    		font-family: 'Unkempt', cursive;
-    		color: #F25C00;
-    		font-size:400%;
-    	}
-
-    	.info {
-    		font-family: 'Karla', sans-serif;
-    		color: #F25C00;
-    		font-size:150%;
-    	}
-
-    	.steps {
-    		font-family: 'Comfortaa', cursive;
-    		font-size: 250%;
-    		color: #F9A603;
-    	}
-
-    	.box {
-    		background-color: #F7EFE2;
-    		border-style: solid;
-    		border-width: 7px;
-    		border-color: white;
-    	}
-
-    	.last {
-    		padding-bottom: 20px;
-    		padding-top: 10px;
-    	}
-
-    	.logo {
-    		padding-top:15px;
-    		padding-bottom:25px;
-    	}
-
-    	.runner {
-    		padding-bottom: 20px;
-    	}
-
-    	.container-fluid {
-    		padding-top:40px;
-    	}
-    </style>
-  </head>
-  <body>
-    <div class="container-fluid">
-    <div class = "col-md-8 col-md-offset-2 box">
-    <div class = "row">
-    
-    <div class = "row">
-    <div class="col-md-8 col-md-offset-2">
-    <img src ="http://i.imgur.com/pWOEUO3.png" class="logo">
-    </div>
-    </div>
-
-    <div class = "row">
-    <div class ="col-md-9 col-md-offset-2">
-      <span class="info"> You've done </span><span class="steps">{{ steps }} /</span>
-      {% if site is not none %}
-      <span class = "steps">{{ site[1] }}</span>
-      <span class="info">steps today! </span>
+   <head>
+      <link rel="stylesheet" type="text/css" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/css/bootstrap.min.css">
+      <link href='https://fonts.googleapis.com/css?family=Unkempt:400,700|Karla:400,700,400italic|Comfortaa:400,700' rel='stylesheet' type='text/css'>
+      <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/js/bootstrap.min.js"></script>
+      <style>
+         body {
+         background-color: red;
+         background-image: url(http://i.imgur.com/crPW1c8.jpg);
+         }
+         h1 {
+         font-family: 'Unkempt', cursive;
+         color: #F25C00;
+         font-size:400%;
+         }
+         .info {
+         font-family: 'Karla', sans-serif;
+         color: #F25C00;
+         font-size:150%;
+         }
+         .steps {
+         font-family: 'Comfortaa', cursive;
+         font-size: 250%;
+         color: #F9A603;
+         }
+         .box {
+         background-color: #F7EFE2;
+         border-style: solid;
+         border-width: 7px;
+         border-color: white;
+         }
+         .last {
+         padding-bottom: 20px;
+         padding-top: 10px;
+         }
+         .logo {
+         padding-top:15px;
+         padding-bottom:25px;
+         }
+         .runner {
+         padding-bottom: 20px;
+         }
+         .container-fluid {
+         padding-top:40px;
+         }
+      </style>
+   </head>
+   <body>
+      <div class="container-fluid">
+         <div class = "col-md-8 col-md-offset-2 box">
+            <div class = "row">
+               <div class = "row">
+                  <div class="col-md-8 col-md-offset-2">
+                     <img src ="http://i.imgur.com/pWOEUO3.png" class="logo">
+                  </div>
+               </div>
+               <div class = "row">
+                  <div class ="col-md-9 col-md-offset-2">
+                     <span class="info"> You've done </span><span class="steps">{{ steps }} /</span>
+                     {% if site is not none %}
+                     <span class = "steps">{{ site[1] }}</span>
+                     <span class="info">steps today! </span>
+                  </div>
+               </div>
+               <div class ="row">
+                  <div class = "col-md-9 col-md-offset-2">
+                     <span class="info"> You're not quite ready to access </span>
+                     <span class ="steps">{{ site[0] }} </span>
+                     <span class = "info"> ;( </span>
+                     {% else %}
+                     NONE
+                     {% endif %}
+                  </div>
+               </div>
+               <div class = "row">
+                  <div class = "col-md-9 col-md-offset-2">
+                     <div class = "info last"> Keep walking with your Fitbit and you'll be watching in no time! </div>
+                  </div>
+               </div>
+               <div class = "row">
+                  <div class = "col-md-6 col-md-offset-3">
+                     <img src="http://i.imgur.com/34eESny.png" alt="Mountain View" style="width:75%" class="runner">
+                  </div>
+               </div>
+            </div>
+         </div>
       </div>
-      </div>
-      <div class ="row">
-      <div class = "col-md-9 col-md-offset-2">
-      <span class="info"> You're not quite ready to access </span>
-      <span class ="steps">{{ site[0] }} </span>
-      <span class = "info"> ;( </span>
-      {% else %}
-      NONE
-      {% endif %}
-      </div>
-      </div>
-
-      <div class = "row">
-      <div class = "col-md-9 col-md-offset-2">
-      <div class = "info last"> Keep walking with your Fitbit and you'll be watching in no time! </div>
-      </div>
-      </div>
-
-      <div class = "row">
-      <div class = "col-md-6 col-md-offset-3">
-      <img src="http://i.imgur.com/34eESny.png" alt="Mountain View" style="width:75%" class="runner">
-      </div>
-      </div>
-
-      </div>
-      </div>
-      </div>
-  </body>
+   </body>
 </html>
