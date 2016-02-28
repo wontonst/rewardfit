@@ -11,8 +11,7 @@ class RewardFit:
 
     def pullAndBlock(self):
         """Pulls steps and updates list of blocked sites"""
-        raw = FitBit.pullFromServer()
-        FitBit.steps.setVal(raw)
+        FitBit.pullFromServer()
         self.block()
         
     def block(self):

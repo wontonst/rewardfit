@@ -1,0 +1,19 @@
+HTTP/1.0 200 OK
+Content-Type: text/html
+
+<html>
+   <head>
+     <script>
+       function runOnLoad(){
+       console.log("Closing in 3 seconds")
+       setTimeout(
+       function(){
+       window.close();
+       },3000);
+       }
+     </script>
+   </head>
+   <body onload="runOnLoad()">
+     Logged in successfully!
+   </body>
+   </html>

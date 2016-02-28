@@ -6,17 +6,22 @@ from jinja2 import Template
 from app_constants import AppConstants
 from fitbit import FitBit
 
-fitbit=json.loads(open('auth.json','r').read())
-
 class AppTCPHandler(SocketServer.StreamRequestHandler):
+    last_code = None
     def handleFitbit(self):
         print "----HANDLING FITBIT OAUTH REQUEST----"
         code = self.data[self.data.find("code")+5:self.data.find("HTTP")-1]
+        if code == AppTCPHandler.last_code:
+            print "----IGNORING DUPLICATE----"
+            self.generateClosePage()
+            return
+        print "{} and {} are not equal".format(code,AppTCPHandler.last_code)
+        AppTCPHandler.last_code = code
         payload={"grant_type":"authorization_code",
-                 "client_id":fitbit['client_id'],
+                 "client_id":FitBit.creds['client_id'],
                  "redirect_uri":"http://localhost/fitbit",
                  "code":code}
-        authraw="{}:{}".format(fitbit['client_id'],fitbit['client_secret'])
+        authraw="{}:{}".format(FitBit.creds['client_id'], FitBit.creds['client_secret'])
         b64auth="Basic "+base64.b64encode(authraw)
         print "Code:",code
         print "Payload:",payload
@@ -26,9 +31,11 @@ class AppTCPHandler(SocketServer.StreamRequestHandler):
         response=requests.post("https://api.fitbit.com/oauth2/token",
                                data=payload,
                                headers={"Authorization":b64auth,"Content-Type":"application/x-www-form-urlencoded"})
-        print response.text
         print response.headers
-        self.wfile.write("HTTP/1.0 200 OK\nContent-Type: text/html")
+        print response.text
+        parsed = json.loads(response.text)
+        FitBit.storeLogin(parsed)
+        self.generateClosePage()
         
     def handle(self):
         trysite=None
@@ -44,6 +51,7 @@ class AppTCPHandler(SocketServer.StreamRequestHandler):
             if t[0] in self.data:
                 trysite = t
                 break
+
         retval=self.generateSite(trysite)
         print retval
         self.wfile.write(retval)
@@ -54,4 +62,13 @@ class AppTCPHandler(SocketServer.StreamRequestHandler):
         template = Template(
             open('template.html', 'r').read()
         )
-        return template.render(steps=FitBit.steps.getVal(), site=site)
+        print FitBit.steps
+        print "Generating with steps={} site={} goal={}".format(FitBit.steps.getVal(), site, FitBit.goal.getVal())
+        return template.render(steps=FitBit.steps.getVal(), site=site, goal=FitBit.goal.getVal())
+
+    def generateClosePage(self):
+        """Generates a site that just closes itself (for auth purposes)"""
+        template = Template(
+            open('close.html', 'r').read()
+        )
+        return template.render()
