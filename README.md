@@ -5,6 +5,7 @@
 + plumbum
 + requests 1.1.0 (do ```sudo pip install requests==1.1.0```)
 + python-firebase
++ Jinja2
 
 You need to have a backup of the hosts file or you could mess up your computer, so run
 
