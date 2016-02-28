@@ -1,59 +1,14 @@
 import thread
 import threading
+import base64
 import time
+import requests
+import json
 from firebase import firebase
 from plumbum import local
 from plumbum.cmd import cp, echo
 import SimpleHTTPServer
 import SocketServer
-from Tkinter import *
-
-global email
-global pwd
-global user
-global password
-
-def make_entry(parent, caption, width=None, **options):
-    Label(parent, text=caption).pack(side=TOP)
-    entry = Entry(parent, **options)
-    if width:
-        entry.config(width=width)
-    entry.pack(side=TOP, padx=10, fill=BOTH)
-    return entry
-
-def enter(event): 
-    store_creds()
-
-def store_creds():
-    global email, pwd, user, password
-    email = user.get()
-    pwd = password.get()
-    print email
-    print pwd
-
-def startUI():
-    global user, password
-    root = Tk()
-    root.geometry('300x160')
-    root.title('Enter your information')
-    var = StringVar()
-    label = Label( root, textvariable=var, relief=RAISED )
-    
-    var.set("Please enter your Fitbit email and password")
-    label.pack()
-    #frame for window margin
-    parent = Frame(root, padx=10, pady=10)
-    parent.pack(fill=BOTH, expand=True)
-    #entrys with not shown text
-    user = make_entry(parent, "Email", 16)
-    password = make_entry(parent, "Password:", 16, show="*")
-    #button for saving fitbit credentials for OAUTH
-    b = Button(parent, borderwidth=4, text="Login", width=10, pady=8, command=store_creds)
-    b.pack(side=BOTTOM)
-    password.bind('<Return>', enter)
-    
-    user.focus_set()
-    parent.mainloop()
 
 class ThreadVar:
     def __init__(self, init):
@@ -70,7 +25,7 @@ class ThreadVar:
         self.lock.release()
         return retv
 
-steps=ThreadVar(0)
+steps = ThreadVar(0)
 
 THRESHOLDS = [
     ('netflix', 10000),
@@ -85,15 +40,43 @@ PORT = 80
 firebase = firebase.FirebaseApplication(
     'https://torrid-torch-8987.firebaseio.com/',
     None)
+fitbit=json.loads(open('auth.json','r').read())
+
+# Every hackathon I use a huge web framework yada yada yada. Well this
+# time I'm going to write my own bare metal server.
 
 class AppTCPHandler(SocketServer.StreamRequestHandler):
     def handle(self):
         trysite=None
-        self.data = self.request.recv(1024).strip()
+        self.data = self.request.recv(2048)
+        print self.data
+        if "GET /fitbit?code=" in self.data:
+            print "----HANDLING FITBIT OAUTH REQUEST----"
+            code = self.data[self.data.find("code")+5:self.data.find("HTTP")-1]
+            payload={"grant_type":"authorization_code",
+                                "client_id":fitbit['client_id'],
+                     "redirect_uri":"http://localhost/fitbit",
+                     "code":code}
+            authraw="{}:{}".format(fitbit['client_id'],fitbit['client_secret'])
+            b64auth="Basic "+base64.b64encode(authraw)
+            print "Code:",code
+            print "Payload:",payload
+            print "Fitbit:",authraw
+            print "Base64Auth:",b64auth
+            print "----SENDING TOKEN REQUEST----"
+            response=requests.post("https://api.fitbit.com/oauth2/token",
+                                   data=payload,
+                                   headers={"Authorization":b64auth,"Content-Type":"application/x-www-form-urlencoded"})
+            print response.text
+            print response.headers
+            self.wfile.write("HTTP/1.0 200 OK\nContent-Type: text/html")
+
         for t in THRESHOLDS:
             if t[0] in self.data:
                 trysite = t
                 break
+        dt=self.rfile.read()
+        print dt
         self.wfile.write(generateSite(trysite))
 
 SocketServer.TCPServer.allow_reuse_address = True
@@ -140,7 +123,6 @@ if __name__ == "__main__":
     try:
         if not os.path.isfile("/etc/hosts.backup"):
             cp["/etc/hosts", "/etc/hosts.backup"]()
-        startUI()
         thread.start_new_thread(updateLoop, ())
         runServer()
     except IOError as e:
@@ -149,6 +131,8 @@ if __name__ == "__main__":
     except KeyboardInterrupt:
         print "Caught interrupt. Closing"
     except:
-        print "Unexpected exception caught. Cleaning and closing"
+        print "Unexpected exception caught. Cleaning and closing."
+        print sys.exc_info()[0],sys.exc_info()[1]
     finally:
+        print "Closing"
         httpd.server_close()
