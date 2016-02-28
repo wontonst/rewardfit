@@ -3,7 +3,8 @@ Content-Type: text/html
 
 <html>
    <head>
-      <link rel="stylesheet" type="text/css" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/css/bootstrap.min.css">
+     <script src="https://code.jquery.com/jquery-2.2.1.min.js"></script>
+     <link rel="stylesheet" type="text/css" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/css/bootstrap.min.css">
       <link href='https://fonts.googleapis.com/css?family=Unkempt:400,700|Karla:400,700,400italic|Comfortaa:400,700' rel='stylesheet' type='text/css'>
       <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/js/bootstrap.min.js"></script>
       <style>
@@ -60,21 +61,19 @@ Content-Type: text/html
                <div class = "row">
                   <div class ="col-md-9 col-md-offset-2">
                      <span class="info"> You've done </span><span class="steps">{{ steps }} /</span>
-                     {% if site is not none %}
                      <span class = "steps">{{ goal }}</span>
                      <span class="info">steps today! </span>
                   </div>
                </div>
+               {% if site is not none %}
                <div class ="row">
                   <div class = "col-md-9 col-md-offset-2">
                      <span class="info"> You're not quite ready to access </span>
                      <span class ="steps">{{ site[0] }} </span>
                      <span class = "info"> ;( </span>
-                     {% else %}
-                     NONE
-                     {% endif %}
                   </div>
                </div>
+               {% endif %}
                <div class = "row">
                   <div class = "col-md-9 col-md-offset-2">
                      <div class = "info last"> Keep walking with your Fitbit and you'll be watching in no time! </div>
