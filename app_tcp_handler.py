@@ -13,7 +13,9 @@ class AppTCPHandler(SocketServer.StreamRequestHandler):
         code = self.data[self.data.find("code")+5:self.data.find("HTTP")-1]
         if code == AppTCPHandler.last_code:
             print "----IGNORING DUPLICATE----"
-            self.generateClosePage()
+            retval=self.generateClosePage()
+            print retval
+            self.wfile.write(retval)
             return
         print "{} and {} are not equal".format(code,AppTCPHandler.last_code)
         AppTCPHandler.last_code = code
@@ -35,7 +37,9 @@ class AppTCPHandler(SocketServer.StreamRequestHandler):
         print response.text
         parsed = json.loads(response.text)
         FitBit.storeLogin(parsed)
-        self.generateClosePage()
+        retval=self.generateClosePage()
+        print retval
+        self.wfile.write(retval)
         
     def handle(self):
         trysite=None
