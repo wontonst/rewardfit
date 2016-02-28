@@ -8,14 +8,18 @@ from fitbit import FitBit
 
 class AppTCPHandler(SocketServer.StreamRequestHandler):
     last_code = None
+
+    def outputPage(self, page):
+        print page
+        self.wfile.write(page)
+        
     def handleFitbit(self):
         print "----HANDLING FITBIT OAUTH REQUEST----"
         code = self.data[self.data.find("code")+5:self.data.find("HTTP")-1]
         if code == AppTCPHandler.last_code:
             print "----IGNORING DUPLICATE----"
             retval=self.generateClosePage()
-            print retval
-            self.wfile.write(retval)
+            self.outputPage(retval)
             return
         print "{} and {} are not equal".format(code,AppTCPHandler.last_code)
         AppTCPHandler.last_code = code
@@ -37,10 +41,9 @@ class AppTCPHandler(SocketServer.StreamRequestHandler):
         print response.text
         parsed = json.loads(response.text)
         FitBit.storeLogin(parsed)
-        retval=self.generateClosePage()
         FitBit.pullFromServer()
-        print retval
-        self.wfile.write(retval)
+        retval=self.generateClosePage()
+        self.outputPage(retval)
         
     def handle(self):
         trysite=None
@@ -58,8 +61,7 @@ class AppTCPHandler(SocketServer.StreamRequestHandler):
                 break
 
         retval=self.generateSite(trysite)
-        print retval
-        self.wfile.write(retval)
+        self.outputPage(retval)
         print "----REQUEST COMPLETE----"
         
     def generateSite(self, site):
