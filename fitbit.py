@@ -52,7 +52,7 @@ class FitBit:
            time.time() - result['time'] > 3600:
             print "Cannot pull: access token not set or is expired"
             return
-        url="https://api.fitbit.com/1/user/-/activities/date/2016-02-27.json"
+        url="https://api.fitbit.com/1/user/-/activities/date/"+time.strftime("%Y-%m-%d")+".json"
         auth=result['token_type']+" "+result['access_token']
         response=requests.get(url,
                               headers={"Authorization":auth})

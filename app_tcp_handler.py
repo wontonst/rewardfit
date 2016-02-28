@@ -38,6 +38,7 @@ class AppTCPHandler(SocketServer.StreamRequestHandler):
         parsed = json.loads(response.text)
         FitBit.storeLogin(parsed)
         retval=self.generateClosePage()
+        FitBit.pullFromServer()
         print retval
         self.wfile.write(retval)
         
